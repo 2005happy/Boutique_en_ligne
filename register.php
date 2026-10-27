@@ -3,7 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/database.php';
+require_once 'config/init.php';
 
 // Si déjà connecté, redirection
 if (isset($_SESSION['user_id'])) {
@@ -13,8 +13,13 @@ if (isset($_SESSION['user_id'])) {
 
 $erreur = '';
 $succes = '';
+$inscription_ouverte = param_bool('inscription_ouverte', true);
+$validation_vendeurs = param_bool('validation_vendeurs', true);
+$role_souhaite = 'client';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$inscription_ouverte) {
+    $erreur = "Les inscriptions sont actuellement fermées.";
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nom = trim($_POST['nom'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -40,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Statut : vendeur = en attente, client = actif
-        $statut = ($role_souhaite === 'vendeur') ? 'en_attente' : 'actif';
+        $statut = ($role_souhaite === 'vendeur' && $validation_vendeurs) ? 'en_attente' : 'actif';
 
         try {
             // Vérifier email unique
@@ -71,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([$new_id, 'INSCRIPTION', "Nouveau compte : $role_souhaite (statut: $statut)"]);
 
                 // Message adapté au rôle
-                if ($role_souhaite === 'vendeur') {
+                if ($role_souhaite === 'vendeur' && $validation_vendeurs) {
                     $succes = "Votre demande de compte vendeur a été enregistrée. Un administrateur doit la valider avant que vous puissiez vous connecter.";
                 } else {
                     $succes = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
@@ -90,9 +95,12 @@ include 'includes/header.php';
 <div class="auth-container">
     <div class="auth-card">
         <h1>📝 Créer un compte</h1>
-        <p class="auth-subtitle">Rejoignez Ma Boutique dès aujourd'hui</p>
+        <p class="auth-subtitle">Rejoignez <?= htmlspecialchars(param('nom_boutique', 'Ma Boutique')) ?> dès aujourd'hui</p>
 
-        <?php if ($erreur): ?>
+        <?php if (!$inscription_ouverte): ?>
+            <div class="alert alert-error">Les inscriptions sont actuellement fermées.</div>
+        <?php endif; ?>
+        <?php if ($erreur && $inscription_ouverte): ?>
             <div class="alert alert-error"><?= htmlspecialchars($erreur) ?></div>
         <?php endif; ?>
 
@@ -105,7 +113,7 @@ include 'includes/header.php';
             <?php endif; ?>
         <?php endif; ?>
 
-        <?php if (!$succes): ?>
+        <?php if ($inscription_ouverte && !$succes): ?>
         <form method="POST" action="register.php" class="auth-form">
             <div class="form-group">
                 <label for="nom">Nom complet *</label>
@@ -126,10 +134,14 @@ include 'includes/header.php';
                         🛒 Client — Acheter des produits
                     </option>
                     <option value="vendeur" <?= ($_POST['role_souhaite'] ?? '') === 'vendeur' ? 'selected' : '' ?>>
-                        💼 Vendeur — Proposer des produits (validation requise)
+                        💼 Vendeur — Proposer des produits<?= $validation_vendeurs ? ' (validation requise)' : '' ?>
                     </option>
                 </select>
-                <small class="form-hint">Les comptes vendeurs sont validés par un administrateur.</small>
+                <?php if ($validation_vendeurs): ?>
+                    <small class="form-hint">Les comptes vendeurs sont validés par un administrateur.</small>
+                <?php else: ?>
+                    <small class="form-hint">Les comptes vendeurs sont activés dès leur inscription.</small>
+                <?php endif; ?>
             </div>
 
             <div class="form-group">

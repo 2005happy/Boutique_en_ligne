@@ -1,7 +1,6 @@
 <?php
 // admin/settings.php
-require_once '../config/database.php';
-require_once '../config/settings.php';
+require_once '../config/init.php';
 require_once '../includes/auth.php';
 
 $message = '';
@@ -64,6 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'theme
             VALUES ('theme', ?)
             ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)
         ")->execute([$theme]);
+
+        $pdo->prepare("UPDATE utilisateurs SET theme = ? WHERE id = ?")
+            ->execute([$theme, $_SESSION['user_id']]);
+        $_SESSION['theme'] = $theme;
+        $GLOBALS['parametres']['theme'] = $theme;
 
         $message = "Thème « $theme » activé.";
         $pdo->prepare("INSERT INTO journal_activites (utilisateur_id, action, details) VALUES (?, ?, ?)")
@@ -130,6 +134,7 @@ if (isset($_GET['reset'])) {
 // ==========================================
 $p = get_tous_parametres($pdo);
 $theme_actuel = $p['theme'] ?? 'clair';
+$theme_page = param('theme', 'clair');
 
 // Statistiques de la base (info utile pour l'admin)
 $stats_bdd = [
@@ -140,7 +145,7 @@ $stats_bdd = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr" data-theme="<?= htmlspecialchars($theme_actuel) ?>">
+<html lang="fr" data-theme="<?= htmlspecialchars($theme_page, ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -151,33 +156,7 @@ $stats_bdd = [
 </head>
 <body class="admin-body">
 
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <h2>🛍️ <?= htmlspecialchars($p['nom_boutique'] ?? 'Ma Boutique') ?></h2>
-        <p class="sidebar-subtitle">Espace Admin</p>
-    </div>
-    <nav class="sidebar-nav">
-        <p class="nav-section-title">Principal</p>
-        <a href="dashboard.php" class="nav-link"><span class="nav-icon">📊</span> Tableau de bord</a>
-        <p class="nav-section-title">Gestion des données</p>
-        <a href="products.php" class="nav-link"><span class="nav-icon">📦</span> Produits</a>
-        <a href="categories.php" class="nav-link"><span class="nav-icon">🏷️</span> Catégories</a>
-        <p class="nav-section-title">Utilisateurs</p>
-        <a href="users.php" class="nav-link"><span class="nav-icon">👥</span> Utilisateurs</a>
-        <a href="pending_users.php" class="nav-link"><span class="nav-icon">⏳</span> Validations</a>
-        <a href="connections.php" class="nav-link"><span class="nav-icon">🔌</span> Connexions</a>
-        <a href="activities.php" class="nav-link"><span class="nav-icon">📝</span> Activités</a>
-        <p class="nav-section-title">Documents</p>
-        <a href="documents.php" class="nav-link"><span class="nav-icon">📁</span> Documents</a>
-        <p class="nav-section-title">Rapports</p>
-        <a href="reports.php" class="nav-link"><span class="nav-icon">📈</span> Rapports & Stats</a>
-        <p class="nav-section-title">Système</p>
-        <a href="backup.php" class="nav-link"><span class="nav-icon">💾</span> Sauvegardes</a>
-        <a href="settings.php" class="nav-link active"><span class="nav-icon">⚙️</span> Paramètres</a>
-        <div class="nav-divider"></div>
-        <a href="../logout.php" class="nav-link nav-logout"><span class="nav-icon">🚪</span> Déconnexion</a>
-    </nav>
-</aside>
+<?php include __DIR__ . '/../includes/sidebar.php'; ?>
 
 <main class="admin-main">
 
@@ -266,6 +245,10 @@ $stats_bdd = [
             <h2>🎨 Apparence — Thème</h2>
         </div>
         <div class="card-body">
+            <p class="text-muted" style="margin-bottom:15px;">
+                Ce thème devient le défaut du site et s'applique aussi à votre compte administrateur.
+                Les autres utilisateurs conservent leur thème personnel.
+            </p>
             <form method="POST" action="settings.php" class="theme-selector">
                 <input type="hidden" name="action" value="theme">
 

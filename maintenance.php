@@ -3,7 +3,7 @@
 require_once 'config/init.php';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="<?= htmlspecialchars(param('theme', 'clair'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <title>Maintenance — <?= htmlspecialchars(param('nom_boutique', 'Ma Boutique')) ?></title>

@@ -1,6 +1,6 @@
 <?php
 // admin/products.php
-require_once '../config/database.php';
+require_once '../config/init.php';
 require_once '../includes/auth.php';
 
 // ==========================================
@@ -138,39 +138,19 @@ if (isset($_GET['edit'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="<?= htmlspecialchars(param('theme', 'clair'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des produits - Admin</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="stylesheet" href="../assets/admin.css">
+    <link rel="stylesheet" href="../assets/theme.css">
 </head>
 <body class="admin-body">
 
 <!-- Sidebar (identique au dashboard) -->
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <h2>🛍️ Ma Boutique</h2>
-        <p class="sidebar-subtitle">Espace Admin</p>
-    </div>
-    <nav class="sidebar-nav">
-        <p class="nav-section-title">Principal</p>
-        <a href="dashboard.php" class="nav-link"><span class="nav-icon">📊</span> Tableau de bord</a>
-        <p class="nav-section-title">Gestion des données</p>
-        <a href="products.php" class="nav-link active"><span class="nav-icon">📦</span> Produits</a>
-        <a href="categories.php" class="nav-link"><span class="nav-icon">🏷️</span> Catégories</a>
-        <p class="nav-section-title">Utilisateurs</p>
-        <a href="users.php" class="nav-link"><span class="nav-icon">👥</span> Utilisateurs</a>
-        <a href="connections.php" class="nav-link"><span class="nav-icon">🔌</span> Connexions</a>
-        <a href="activities.php" class="nav-link"><span class="nav-icon">📝</span> Activités</a>
-        <p class="nav-section-title">Système</p>
-        <a href="backup.php" class="nav-link"><span class="nav-icon">💾</span> Sauvegardes</a>
-        <a href="settings.php" class="nav-link"><span class="nav-icon">⚙️</span> Paramètres</a>
-        <div class="nav-divider"></div>
-        <a href="../logout.php" class="nav-link nav-logout"><span class="nav-icon">🚪</span> Déconnexion</a>
-    </nav>
-</aside>
+<?php include __DIR__ . '/../includes/sidebar.php'; ?>
 
 <main class="admin-main">
 
@@ -218,7 +198,7 @@ if (isset($_GET['edit'])) {
                 </div>
 
                 <div class="form-group">
-                    <label for="prix">Prix (€) *</label>
+                    <label for="prix">Prix (<?= htmlspecialchars(param('devise', '€')) ?>) *</label>
                     <input type="number" id="prix" name="prix" step="0.01" min="0.01" required
                            value="<?= htmlspecialchars($produit_edit['prix'] ?? '') ?>">
                 </div>
@@ -328,7 +308,7 @@ if (isset($_GET['edit'])) {
                                     <small class="text-muted"><?= htmlspecialchars(mb_substr($p['description'] ?? '', 0, 50)) ?></small>
                                 </td>
                                 <td><?= htmlspecialchars($p['categorie'] ?? '—') ?></td>
-                                <td><?= number_format($p['prix'], 2, ',', ' ') ?> €</td>
+                                <td><?= number_format($p['prix'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></td>
                                 <td>
                                     <span class="badge <?= $p['stock'] < 5 ? 'badge-danger' : 'badge-success' ?>">
                                         <?= (int)$p['stock'] ?>

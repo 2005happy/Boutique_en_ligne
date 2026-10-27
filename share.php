@@ -3,7 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/database.php';
+require_once 'config/init.php';
 
 $token = $_GET['token'] ?? '';
 $erreur = '';
@@ -36,11 +36,12 @@ if ($token === '') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="<?= htmlspecialchars(param('theme', 'clair'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <title>Partage de document</title>
     <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/theme.css">
 </head>
 <body>
     <div class="auth-container">

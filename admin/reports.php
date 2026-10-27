@@ -1,6 +1,6 @@
 <?php
 // admin/reports.php
-require_once '../config/database.php';
+require_once '../config/init.php';
 require_once '../includes/auth.php';
 require_once '../vendor/autoload.php'; // ⚠️ adaptez le chemin si besoin
 
@@ -32,7 +32,9 @@ if (isset($_GET['pdf'])) {
     // En-tête
     $pdf->SetFont('Arial', 'B', 16);
     $pdf->SetTextColor(44, 62, 80);
-    $pdf->Cell(0, 10, utf8_decode('Ma Boutique — Rapport'), 0, 1, 'C');
+    $nom_boutique_pdf = param('nom_boutique', 'Ma Boutique');
+    $devise_pdf = utf8_decode(' ' . param('devise', '€'));
+    $pdf->Cell(0, 10, utf8_decode($nom_boutique_pdf . ' — Rapport'), 0, 1, 'C');
     $pdf->SetFont('Arial', '', 10);
     $pdf->SetTextColor(127, 140, 141);
     $pdf->Cell(0, 6, utf8_decode("Période : " . date('d/m/Y', strtotime($date_debut)) . " au " . date('d/m/Y', strtotime($date_fin))), 0, 1, 'C');
@@ -79,15 +81,15 @@ if (isset($_GET['pdf'])) {
             $pdf->SetFillColor(245, 247, 250);
             $pdf->Cell(70, 7, utf8_decode(mb_substr($row['nom'], 0, 38)), 1, 0, 'L', $fill);
             $pdf->Cell(30, 7, utf8_decode($row['categorie'] ?? '—'), 1, 0, 'C', $fill);
-            $pdf->Cell(25, 7, number_format($row['prix'], 2, ',', ' ') . ' €', 1, 0, 'R', $fill);
+            $pdf->Cell(25, 7, number_format($row['prix'], 2, ',', ' ') . $devise_pdf, 1, 0, 'R', $fill);
             $pdf->Cell(20, 7, $row['stock'], 1, 0, 'C', $fill);
-            $pdf->Cell(30, 7, number_format($valeur, 2, ',', ' ') . ' €', 1, 1, 'R', $fill);
+            $pdf->Cell(30, 7, number_format($valeur, 2, ',', ' ') . $devise_pdf, 1, 1, 'R', $fill);
             $fill = !$fill;
         }
         // Total
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->Cell(145, 8, 'Valeur totale du stock', 1, 0, 'R');
-        $pdf->Cell(30, 8, number_format($total_valeur, 2, ',', ' ') . ' €', 1, 1, 'R');
+        $pdf->Cell(30, 8, number_format($total_valeur, 2, ',', ' ') . $devise_pdf, 1, 1, 'R');
 
     } elseif ($type_rapport === 'utilisateurs') {
         // ---- Rapport utilisateurs ----
@@ -162,7 +164,7 @@ if (isset($_GET['pdf'])) {
             'Utilisateurs total'         => $pdo->query("SELECT COUNT(*) FROM utilisateurs")->fetchColumn(),
             'Produits actifs'            => $pdo->query("SELECT COUNT(*) FROM produits WHERE archive = 0")->fetchColumn(),
             'Catégories actives'         => $pdo->query("SELECT COUNT(*) FROM categories WHERE archive = 0")->fetchColumn(),
-            'Valeur totale du stock'     => number_format($pdo->query("SELECT COALESCE(SUM(prix * stock), 0) FROM produits WHERE archive = 0")->fetchColumn(), 2, ',', ' ') . ' €',
+            'Valeur totale du stock'     => number_format($pdo->query("SELECT COALESCE(SUM(prix * stock), 0) FROM produits WHERE archive = 0")->fetchColumn(), 2, ',', ' ') . ' ' . param('devise', '€'),
             'Produits en rupture'        => $pdo->query("SELECT COUNT(*) FROM produits WHERE stock < 5 AND archive = 0")->fetchColumn(),
             'Documents téléversés'       => $pdo->query("SELECT COUNT(*) FROM documents")->fetchColumn(),
             'Connexions (période)'       => $pdo->prepare("SELECT COUNT(*) FROM historique_connexions WHERE DATE(date_connexion) BETWEEN ? AND ?")->execute([$date_debut, $date_fin]) ?: '—',
@@ -181,7 +183,7 @@ if (isset($_GET['pdf'])) {
     $pdf->SetY(-15);
     $pdf->SetFont('Arial', 'I', 8);
     $pdf->SetTextColor(149, 165, 166);
-    $pdf->Cell(0, 10, utf8_decode('Ma Boutique — Rapport généré automatiquement — Page ' . $pdf->PageNo()), 0, 0, 'C');
+    $pdf->Cell(0, 10, utf8_decode($nom_boutique_pdf . ' — Rapport généré automatiquement — Page ' . $pdf->PageNo()), 0, 0, 'C');
 
     // Journalisation
     $pdo->prepare("INSERT INTO journal_activites (utilisateur_id, action, details) VALUES (?, ?, ?)")
@@ -301,44 +303,19 @@ $moyenne_jour = count($jours_actifs) > 0
 $prevision_mois = round($moyenne_jour * 30);
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="<?= htmlspecialchars(param('theme', 'clair'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rapports et statistiques - Admin</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="stylesheet" href="../assets/admin.css">
+    <link rel="stylesheet" href="../assets/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="admin-body">
 
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <h2>🛍️ Ma Boutique</h2>
-        <p class="sidebar-subtitle">Espace Admin</p>
-    </div>
-    <nav class="sidebar-nav">
-        <p class="nav-section-title">Principal</p>
-        <a href="dashboard.php" class="nav-link"><span class="nav-icon">📊</span> Tableau de bord</a>
-        <p class="nav-section-title">Gestion des données</p>
-        <a href="products.php" class="nav-link"><span class="nav-icon">📦</span> Produits</a>
-        <a href="categories.php" class="nav-link"><span class="nav-icon">🏷️</span> Catégories</a>
-        <p class="nav-section-title">Utilisateurs</p>
-        <a href="users.php" class="nav-link"><span class="nav-icon">👥</span> Utilisateurs</a>
-        <a href="roles.php" class="nav-link"><span class="nav-icon">🔑</span> Rôles & Permissions</a>
-        <a href="connections.php" class="nav-link"><span class="nav-icon">🔌</span> Connexions</a>
-        <a href="activities.php" class="nav-link"><span class="nav-icon">📝</span> Activités</a>
-        <p class="nav-section-title">Documents</p>
-        <a href="documents.php" class="nav-link"><span class="nav-icon">📁</span> Documents</a>
-        <p class="nav-section-title">Rapports</p>
-        <a href="reports.php" class="nav-link active"><span class="nav-icon">📈</span> Rapports & Stats</a>
-        <p class="nav-section-title">Système</p>
-        <a href="backup.php" class="nav-link"><span class="nav-icon">💾</span> Sauvegardes</a>
-        <a href="settings.php" class="nav-link"><span class="nav-icon">⚙️</span> Paramètres</a>
-        <div class="nav-divider"></div>
-        <a href="../logout.php" class="nav-link nav-logout"><span class="nav-icon">🚪</span> Déconnexion</a>
-    </nav>
-</aside>
+<?php include __DIR__ . '/../includes/sidebar.php'; ?>
 
 <main class="admin-main">
 
@@ -401,7 +378,7 @@ $prevision_mois = round($moyenne_jour * 30);
             <div class="stat-icon">💰</div>
             <div class="stat-content">
                 <p class="stat-label">Valeur du stock</p>
-                <h3 class="stat-value"><?= number_format($valeur_stock, 0, ',', ' ') ?> €</h3>
+                <h3 class="stat-value"><?= number_format($valeur_stock, 0, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></h3>
             </div>
         </div>
         <div class="stat-card stat-red">
@@ -478,7 +455,7 @@ $prevision_mois = round($moyenne_jour * 30);
                             <li>
                                 <span class="rank rank-<?= $i + 1 ?>"><?= $i + 1 ?></span>
                                 <span class="list-name"><?= htmlspecialchars($p['nom']) ?></span>
-                                <span class="list-value"><?= number_format($p['valeur'], 0, ',', ' ') ?> €</span>
+                                <span class="list-value"><?= number_format($p['valeur'], 0, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></span>
                             </li>
                         <?php endforeach; ?>
                     </ul>

@@ -16,6 +16,20 @@ require_once __DIR__ . '/settings.php';
 // 4) Charger tous les paramètres une seule fois
 $GLOBALS['parametres'] = get_tous_parametres($pdo);
 
+// Appliquer le thème personnel de l'utilisateur, ou le thème global par défaut.
+if (isset($_SESSION['user_id'])) {
+    if (!isset($_SESSION['theme'])) {
+        $stmt = $pdo->prepare("SELECT theme FROM utilisateurs WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $theme_utilisateur = $stmt->fetchColumn();
+        $_SESSION['theme'] = in_array($theme_utilisateur, ['clair', 'sombre'], true)
+            ? $theme_utilisateur
+            : ($GLOBALS['parametres']['theme'] ?? 'clair');
+    }
+
+    $GLOBALS['parametres']['theme'] = $_SESSION['theme'];
+}
+
 // 5) Fonction helper pour accès rapide
 function param(string $cle, $defaut = null) {
     return $GLOBALS['parametres'][$cle] ?? $defaut;
@@ -32,7 +46,11 @@ $pages_autorisees = ['login.php', 'logout.php', 'maintenance.php'];
 if ($maintenance === '1'
     && $role !== 'admin'
     && !in_array($page_actuelle, $pages_autorisees, true)) {
-    header("Location: " . (str_starts_with($_SERVER['PHP_SELF'], '/Boutique/admin/') ? '../maintenance.php' : 'maintenance.php'));
+    $chemin_page = str_replace('\\', '/', $_SERVER['PHP_SELF']);
+    $page_maintenance = str_contains($chemin_page, '/admin/')
+        ? '../maintenance.php'
+        : 'maintenance.php';
+    header("Location: " . $page_maintenance);
     exit;
 }
 

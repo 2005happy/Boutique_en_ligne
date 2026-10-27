@@ -1,8 +1,15 @@
 <?php
-// index.php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 require 'config/database.php';
+// ... suite du code
+// index.php
+require_once 'config/init.php';
 
 // Récupération des produits récents (non archivés)
+$elements_par_page = max(5, min(100, (int)param('elements_par_page', 20)));
 try {
     $stmt = $pdo->query("
         SELECT p.id, p.nom, p.description, p.prix, p.stock, c.nom AS categorie
@@ -10,7 +17,7 @@ try {
         LEFT JOIN categories c ON p.categorie_id = c.id
         WHERE p.archive = 0
         ORDER BY p.cree_le DESC
-        LIMIT 6
+        LIMIT $elements_par_page
     ");
     $produits = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -31,8 +38,8 @@ include 'includes/header.php';
 <!-- Bannière d'accueil -->
 <section class="hero">
     <div class="hero-content">
-        <h1>Bienvenue sur Ma Boutique</h1>
-        <p>Découvrez nos produits de qualité au meilleur prix.</p>
+        <h1>Bienvenue chez <?= htmlspecialchars(param('nom_boutique', 'Ma Boutique')) ?></h1>
+        <p><?= htmlspecialchars(param('slogan', 'Découvrez nos produits de qualité au meilleur prix.')) ?></p>
         <a href="index.php?page=produits" class="btn-primary">Voir les produits</a>
     </div>
 </section>
@@ -72,7 +79,7 @@ include 'includes/header.php';
                         <h3><?= htmlspecialchars($p['nom']) ?></h3>
                         <span class="badge"><?= htmlspecialchars($p['categorie'] ?? 'Sans catégorie') ?></span>
                         <p class="description"><?= htmlspecialchars(mb_substr($p['description'] ?? '', 0, 80)) ?>...</p>
-                        <p class="prix"><?= number_format($p['prix'], 2, ',', ' ') ?> €</p>
+                        <p class="prix"><?= number_format($p['prix'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></p>
                         <p class="stock <?= $p['stock'] > 0 ? 'en-stock' : 'rupture' ?>">
                             <?= $p['stock'] > 0 ? 'En stock (' . $p['stock'] . ')' : 'Rupture de stock' ?>
                         </p>

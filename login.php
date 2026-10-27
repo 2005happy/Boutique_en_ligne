@@ -3,7 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require 'config/database.php';
+require_once 'config/init.php';
 
 // Si l'utilisateur est déjà connecté, redirection
 if (isset($_SESSION['user_id'])) {
@@ -57,30 +57,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             // Sécurité session (Critère 42)
                             session_regenerate_id(true);
-                            $_SESSION['user_id']        = $user['id'];
-                            $_SESSION['nom']            = $user['nom'];
-                            $_SESSION['email']          = $user['email'];
-                            $_SESSION['role']           = $user['role'];
-                            $_SESSION['login_time']     = time();
-                            $_SESSION['last_activity']  = time();
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['nom'] = $user['nom'];
+                            $_SESSION['email'] = $user['email'];
+                            $_SESSION['role'] = $user['role'];
+                            $_SESSION['theme'] = in_array($user['theme'] ?? null, ['clair', 'sombre'], true)
+                                ? $user['theme']
+                                : param('theme', 'clair');
+                            $_SESSION['login_time'] = time();
+                            $_SESSION['last_activity'] = time();
 
                             // Historique des connexions (Critère 6)
                             $pdo->prepare("INSERT INTO historique_connexions (utilisateur_id, ip_adresse) VALUES (:uid, :ip)")
                                 ->execute([
                                     ':uid' => $user['id'],
-                                    ':ip'  => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                                    ':ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
                                 ]);
 
                             // Journal des activités (Critère 10)
                             $pdo->prepare("INSERT INTO journal_activites (utilisateur_id, action, details) VALUES (:uid, :action, :details)")
                                 ->execute([
-                                    ':uid'     => $user['id'],
-                                    ':action'  => 'CONNEXION',
+                                    ':uid' => $user['id'],
+                                    ':action' => 'CONNEXION',
                                     ':details' => 'Connexion réussie depuis ' . ($_SERVER['REMOTE_ADDR'] ?? 'inconnu')
                                 ]);
 
                             // Redirection selon le rôle
-                            header("Location: " . ($user['role'] === 'admin' ? 'admin/dashboard.php' : 'index.php'));
+                            // Après : session_regenerate_id(true); ...
+                            if ($user['role'] === 'admin') {
+                                header("Location: admin/dashboard.php");
+                            } elseif ($user['role'] === 'vendeur') {
+                                header("Location: vandeur/dashboard.php");
+                            } else {
+                                header("Location: index.php");
+                            }
                             exit;
                         }
                     } else {
@@ -125,7 +135,7 @@ include 'includes/header.php';
             <div class="form-group">
                 <label for="email">Adresse email</label>
                 <input type="email" id="email" name="email" placeholder="exemple@email.com"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autofocus>
+                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autofocus>
             </div>
 
             <div class="form-group">
@@ -144,7 +154,11 @@ include 'includes/header.php';
         </form>
 
         <div class="auth-footer">
-            <p>Pas encore de compte ? <a href="register.php" class="link">Créer un compte</a></p>
+            <?php if (param_bool('inscription_ouverte', true)): ?>
+                <p>Pas encore de compte ? <a href="register.php" class="link">Créer un compte</a></p>
+            <?php else: ?>
+                <p>Les inscriptions sont actuellement fermées.</p>
+            <?php endif; ?>
         </div>
     </div>
 </div>

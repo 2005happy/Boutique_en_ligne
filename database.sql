@@ -9,6 +9,7 @@ CREATE TABLE utilisateurs (
     email VARCHAR(150) UNIQUE NOT NULL,
     mot_de_passe VARCHAR(255) NOT NULL,
     role ENUM('admin', 'vendeur', 'client') DEFAULT 'client',
+    theme ENUM('clair', 'sombre') NULL DEFAULT NULL,
     tentatives_connexion INT DEFAULT 0,
     verrouille_jusqua DATETIME NULL,
     double_auth_secret VARCHAR(255) NULL,

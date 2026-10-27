@@ -1,6 +1,6 @@
 <?php
 // admin/dashboard.php
-require_once '../config/database.php';
+require_once '../config/init.php';
 if (session_status() === PHP_SESSION_NONE)
     session_start();
 // echo "<pre>SESSION sur dashboard : ";
@@ -119,7 +119,7 @@ $notifications = count($alertesStock);
 $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut = 'en_attente'")->fetchColumn();
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="<?= htmlspecialchars(param('theme', 'clair'), ENT_QUOTES, 'UTF-8') ?>">
 
 <head>
     <meta charset="UTF-8">
@@ -127,6 +127,7 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
     <title>Tableau de bord - Admin</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="stylesheet" href="../assets/admin.css">
+    <link rel="stylesheet" href="../assets/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -135,78 +136,7 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
     <!-- ==========================================
      SIDEBAR : MENU COMPLET (Critères 2, 3, 44)
      ========================================== -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h2>🛍️ Ma Boutique</h2>
-            <p class="sidebar-subtitle">Espace Admin</p>
-        </div>
-
-        <nav class="sidebar-nav">
-            <p class="nav-section-title">Principal</p>
-            <a href="dashboard.php" class="nav-link active">
-                <span class="nav-icon">📊</span> Tableau de bord
-            </a>
-
-            <p class="nav-section-title">Gestion des données</p>
-            <a href="products.php" class="nav-link">
-                <span class="nav-icon">📦</span> Produits
-            </a>
-            <a href="categories.php" class="nav-link">
-                <span class="nav-icon">🏷️</span> Catégories
-            </a>
-
-            <p class="nav-section-title">Utilisateurs</p>
-            <a href="users.php" class="nav-link">
-                <span class="nav-icon">👥</span> Utilisateurs
-            </a>
-            <a href="roles.php" class="nav-link">
-                <span class="nav-icon">🔑</span> Rôles & Permissions
-            </a>
-            <a href="connections.php" class="nav-link">
-                <span class="nav-icon">🔌</span> Historique connexions
-            </a>
-            <a href="activities.php" class="nav-link">
-                <span class="nav-icon">📝</span> Journal activités
-            </a>
-
-            <p class="nav-section-title">Documents</p>
-            <a href="documents.php" class="nav-link">
-                <span class="nav-icon">📁</span> Gestion documentaire
-            </a>
-
-            <p class="nav-section-title">Rapports</p>
-            <a href="reports.php" class="nav-link">
-                <span class="nav-icon">📄</span> Rapports PDF
-            </a>
-            <a href="export_excel.php" class="nav-link">
-                <span class="nav-icon">📊</span> Export Excel
-            </a>
-
-            <p class="nav-section-title">Communication</p>
-            <a href="messages.php" class="nav-link">
-                <span class="nav-icon">💬</span> Messages
-                <?php if ($notifications > 0): ?>
-                    <span class="badge-notif"><?= $notifications ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="notifications.php" class="nav-link">
-                <span class="nav-icon">🔔</span> Notifications
-            </a>
-
-            <p class="nav-section-title">Sécurité & Système</p>
-            <a href="backup.php" class="nav-link">
-                <span class="nav-icon">💾</span> Sauvegardes
-            </a>
-            <a href="settings.php" class="nav-link">
-                <span class="nav-icon">⚙️</span> Paramètres
-            </a>
-
-            <div class="nav-divider"></div>
-            <a href="../logout.php" class="nav-link nav-logout">
-                <span class="nav-icon">🚪</span> Déconnexion
-            </a>
-        </nav>
-    </aside>
+    <?php include __DIR__ . '/../includes/sidebar.php'; ?>
 
     <!-- ==========================================
      CONTENU PRINCIPAL
@@ -223,7 +153,7 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
                 </p>
             </div>
             <div class="topbar-actions">
-                <a href="notifications.php" class="topbar-icon" title="Notifications">
+                <a href="products.php" class="topbar-icon" title="Produits à faible stock">
                     🔔
                     <?php if ($notifications > 0): ?>
                         <span class="badge-notif-top"><?= $notifications ?></span>
@@ -265,8 +195,8 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
                 <div class="stat-icon">💰</div>
                 <div class="stat-content">
                     <p class="stat-label">Valeur du stock</p>
-                    <h3 class="stat-value"><?= number_format($stats['valeur_stock'], 2, ',', ' ') ?> €</h3>
-                    <p class="stat-meta">CA mois : <?= number_format($stats['ca_mois'], 2, ',', ' ') ?> €</p>
+                    <h3 class="stat-value"><?= number_format($stats['valeur_stock'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></h3>
+                    <p class="stat-meta">CA mois : <?= number_format($stats['ca_mois'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></p>
                 </div>
             </div>
 
@@ -319,7 +249,7 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
                                 <li>
                                     <span class="rank rank-<?= $i + 1 ?>"><?= $i + 1 ?></span>
                                     <span class="list-name"><?= htmlspecialchars($p['nom']) ?></span>
-                                    <span class="list-value"><?= number_format($p['prix'], 2, ',', ' ') ?> €</span>
+                                    <span class="list-value"><?= number_format($p['prix'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></span>
                                     <span class="list-stock <?= $p['stock'] < 5 ? 'low' : '' ?>">
                                         stock : <?= $p['stock'] ?>
                                     </span>
@@ -433,7 +363,7 @@ $nb_attente = (int) $pdo->query("SELECT COUNT(*) FROM utilisateurs WHERE statut 
                             <?php foreach ($produitsRecents as $p): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($p['nom']) ?></td>
-                                    <td><?= number_format($p['prix'], 2, ',', ' ') ?> €</td>
+                                    <td><?= number_format($p['prix'], 2, ',', ' ') ?> <?= htmlspecialchars(param('devise', '€')) ?></td>
                                     <td>
                                         <span class="badge <?= $p['stock'] < 5 ? 'badge-danger' : 'badge-success' ?>">
                                             <?= $p['stock'] ?>
